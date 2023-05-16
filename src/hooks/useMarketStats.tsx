@@ -18,7 +18,12 @@ import { getLiquidationPrice } from '@/src/utils/GMX/getLiquidationPrice'
 import { getNextToAmount } from '@/src/utils/GMX/getNextToAmount'
 import { getUSDGStats } from '@/src/utils/GMX/getUSDGStats'
 import { expandDecimals } from '@/src/utils/GMX/numbers'
-import { FuturesMarketKey, KWENTA_FIXED_FEE, ZERO_BIG_NUM } from '@/src/utils/KWENTA/constants'
+import {
+  FuturesMarketKey,
+  KWENTA_FIXED_FEE,
+  ZERO_BIG_NUM,
+  zeroBN,
+} from '@/src/utils/KWENTA/constants'
 import { formatOrderSizes, formatPosition } from '@/src/utils/KWENTA/format'
 import { extractMarketInfo, getFillPrice } from '@/src/utils/KWENTA/getMarketInternalData'
 import { getMarketInternalData } from '@/src/utils/KWENTA/getMarketInternalData'
@@ -172,6 +177,8 @@ async function getGMXStatsFetcher(
     BigNumber.from(0)
 
   const borrowFeeAmount = nextToUsd.mul(borrowFee).div(BASIS_POINTS_DIVISOR).div(100)
+  const fillPrice = toTokenPriceUsd.div(BigNumber.from(10).pow(USD_DECIMALS - 18))
+  const positionValue = wei(amount).mul(leverage).toBN()
 
   // ----------------------
   // Set values
@@ -179,9 +186,9 @@ async function getGMXStatsFetcher(
 
   return {
     protocol: 'GMX',
-    position: nextToUsd.div(BigNumber.from(10).pow(USD_DECIMALS - 18)),
+    position: positionValue,
     investmentTokenSymbol: 'USDC',
-    fillPrice: toTokenPriceUsd.div(BigNumber.from(10).pow(USD_DECIMALS - 18)),
+    fillPrice: fillPrice,
     orderSize: nextToAmount, // 18
     priceImpact: undefined,
     protocolFee: positionFeeUsd.div(BigNumber.from(10).pow(USD_DECIMALS - 18)),
@@ -286,8 +293,8 @@ async function getKwentaStatsFetcher(
     fillPrice: fillPrice,
     orderSize: wei(margin).mul(leverage).div(marketData.assetPrice).toBN(),
     priceImpact: positionStats.priceImpact.toBN(),
-    protocolFee: positionStats.fee.add(KWENTA_FIXED_FEE).toBN(),
-    swapFee: positionStats.fee.toBN(),
+    protocolFee: positionStats.fee.toBN(),
+    swapFee: zeroBN.toBN(),
     executionFee: KWENTA_FIXED_FEE.toBN(),
     liquidationPrice: positionStats.liqPrice.toBN(),
     oneHourFunding: oneHourFunding,
