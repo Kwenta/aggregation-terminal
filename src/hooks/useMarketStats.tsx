@@ -18,12 +18,7 @@ import { getLiquidationPrice } from '@/src/utils/GMX/getLiquidationPrice'
 import { getNextToAmount } from '@/src/utils/GMX/getNextToAmount'
 import { getUSDGStats } from '@/src/utils/GMX/getUSDGStats'
 import { expandDecimals } from '@/src/utils/GMX/numbers'
-import {
-  FuturesMarketKey,
-  KWENTA_FIXED_FEE,
-  ZERO_BIG_NUM,
-  zeroBN,
-} from '@/src/utils/KWENTA/constants'
+import { FuturesMarketKey, KWENTA_FIXED_FEE, ZERO_BIG_NUM } from '@/src/utils/KWENTA/constants'
 import { formatOrderSizes, formatPosition } from '@/src/utils/KWENTA/format'
 import { extractMarketInfo, getFillPrice } from '@/src/utils/KWENTA/getMarketInternalData'
 import { getMarketInternalData } from '@/src/utils/KWENTA/getMarketInternalData'
@@ -197,7 +192,9 @@ async function getGMXStatsFetcher(
       .mul(INCREASE_ORDER_EXECUTION_GAS_FEE)
       .div(BigNumber.from(10).pow(USD_DECIMALS)),
     liquidationPrice: liquidationPrice.div(BigNumber.from(10).pow(USD_DECIMALS - 18)),
-    oneHourFunding: borrowFeeAmount.div(BigNumber.from(10).pow(USD_DECIMALS - 18)),
+    oneHourFunding: borrowFeeAmount
+      .div(BigNumber.from(10).pow(USD_DECIMALS - 18))
+      .mul(BigNumber.from(-1)),
   }
 }
 
@@ -278,14 +275,12 @@ async function getKwentaStatsFetcher(
   )
 
   const positionValue = wei(margin).mul(leverage).div(sUSDRate).toBN()
-  const oneHourFunding = oneHourlyFundingRate.gt(ZERO_BIG_NUM)
-    ? positionSide === 'long'
-      ? wei(marketData.assetPrice).mul(sizeDelta).mul(oneHourlyFundingRate).neg().toBN()
-      : wei(marketData.assetPrice).mul(sizeDelta).mul(oneHourlyFundingRate).toBN() // positive && short position
-    : positionSide === 'short'
-    ? wei(marketData.assetPrice).mul(sizeDelta).mul(oneHourlyFundingRate).toBN()
-    : wei(marketData.assetPrice).mul(sizeDelta).mul(oneHourlyFundingRate).abs().toBN() // negative && long position
-  console.log('FULL PRICE IMPACT ', positionStats.priceImpact)
+  const oneHourFunding = wei(marketData.assetPrice)
+    .mul(sizeDelta)
+    .mul(oneHourlyFundingRate)
+    .neg()
+    .toBN()
+
   return {
     protocol: 'Kwenta',
     investmentTokenSymbol: 'sUSD',
@@ -294,7 +289,7 @@ async function getKwentaStatsFetcher(
     orderSize: wei(margin).mul(leverage).div(marketData.assetPrice).toBN(),
     priceImpact: positionStats.priceImpact.toBN(),
     protocolFee: positionStats.fee.toBN(),
-    swapFee: zeroBN.toBN(),
+    swapFee: ZERO_BIG_NUM,
     executionFee: KWENTA_FIXED_FEE.toBN(),
     liquidationPrice: positionStats.liqPrice.toBN(),
     oneHourFunding: oneHourFunding,
