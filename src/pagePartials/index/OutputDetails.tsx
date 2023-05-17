@@ -102,7 +102,11 @@ export function OutputDetails({ comparison, local, margin, positionSide, tokenSy
         </span>
         <strong>{formatAmount(local.priceImpact)}%</strong>
       </List>
-      <List as={motion.li} variants={itemVariants}>
+      <List
+        as={motion.li}
+        status={setStyle(local.protocolFee, comparison?.protocolFee)}
+        variants={itemVariants}
+      >
         <span>
           <Tooltip text="Fees the protocol charges for opening a position.">Protocol Fee</Tooltip>
         </span>
